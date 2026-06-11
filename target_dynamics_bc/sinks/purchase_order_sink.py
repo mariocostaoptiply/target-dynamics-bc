@@ -279,6 +279,7 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
                 ),
             )
 
+        total_line_count = len(line_upsert_requests)
         line_upsert_responses = (
             self.dynamics_client.make_batch_request(line_upsert_requests)
             if line_upsert_requests
@@ -306,11 +307,40 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
 
         if failed_line_ids:
             buy_order_id = self._get_buy_order_error_id(record)
-            state["error"] = (
+            failed_lines_message = (
                 f"Error BuyOrder {buy_order_id} on lines {','.join(failed_line_ids)}"
             )
-            self.logger.error("%s: %s", state["error"], " ; ".join(failed_line_details))
-            return purchase_order_id or "", False, state
+            self.logger.error(
+                "%s: %s", failed_lines_message, " ; ".join(failed_line_details)
+            )
+
+            if len(failed_line_ids) == total_line_count:
+                delete_request = {
+                    "url": DynamicsClient.ref_request_endpoints[self.record_type].format(
+                        companyId=company_id
+                    )
+                    + f"({purchase_order_id})",
+                    "method": "DELETE",
+                }
+                delete_response = self.dynamics_client.make_batch_request([delete_request])[0]
+                if delete_response.get("status") not in [200, 202, 204]:
+                    state["error"] = (
+                        f"{failed_lines_message}; rollback delete failed status={delete_response.get('status')} "
+                        f"message={extract_error_message(delete_response)}"
+                    )
+                else:
+                    state["error"] = (
+                        f"{failed_lines_message}; all {total_line_count} lines failed, "
+                        "purchase order was deleted"
+                    )
+                return purchase_order_id or "", False, state
+
+            state["warning"] = (
+                f"BuyOrder {buy_order_id} partially exported: "
+                f"{len(failed_line_ids)}/{total_line_count} lines failed "
+                f"({','.join(failed_line_ids)})"
+            )
+            self.logger.warning(state["warning"])
 
         if is_update:
             state["is_updated"] = True
