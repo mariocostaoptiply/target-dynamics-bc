@@ -74,12 +74,7 @@ class TargetDynamicsV2(TargetHotglue):
                     tenant_config = json.load(f)
 
         if "dynamics-bc" not in tenant_config:
-            tenant_config["dynamics-bc"] = {
-                "dimension_mappings": {
-                    "class": "CLASS",
-                    "department": "DEPARTMENT"
-                }
-            }
+            tenant_config["dynamics-bc"] = {}
 
         return tenant_config
 
