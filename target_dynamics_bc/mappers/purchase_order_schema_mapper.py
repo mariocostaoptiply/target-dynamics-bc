@@ -9,7 +9,11 @@ from target_dynamics_bc.utils import InvalidInputError, RecordNotFound
 class PurchaseOrderSchemaMapper(BaseMapper):
     name = "BuyOrders"
     existing_record_pk_mappings = [
-        {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
+        {
+            "record_field": "dynamicsId",
+            "dynamics_field": "id",
+            "required_if_present": True,
+        },
         {
             "record_field": "number",
             "dynamics_field": "number",
@@ -21,6 +25,25 @@ class PurchaseOrderSchemaMapper(BaseMapper):
             "required_if_present": False,
         },
     ]
+
+    def _get_optiply_id(self) -> str | None:
+        optiply_id = (
+            self.record.get("externalId")
+            or self.record.get("externalid")
+            or self.record.get("id")
+        )
+        return str(optiply_id) if optiply_id else None
+
+    def _get_purchase_order_number(self) -> str | None:
+        number = self.record.get("number") or self.record.get("transactionNumber")
+        if number:
+            return str(number)
+
+        optiply_id = self._get_optiply_id()
+        if optiply_id:
+            return f"OP-{optiply_id}"
+
+        return None
 
     def _map_company(self) -> dict:
         company = super()._map_company()
@@ -34,6 +57,20 @@ class PurchaseOrderSchemaMapper(BaseMapper):
             return None
 
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
+
+        purchase_order_number = self._get_purchase_order_number()
+        if purchase_order_number:
+            found_record = next(
+                (
+                    dynamics_record
+                    for dynamics_record in existing_entities_in_dynamics
+                    if dynamics_record.get("number") == purchase_order_number
+                ),
+                None,
+            )
+            if found_record:
+                return found_record
+
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
             record_id = self.record.get(existing_record_pk_mapping["record_field"])
             if not record_id:
@@ -280,6 +317,10 @@ class PurchaseOrderSchemaMapper(BaseMapper):
         )
         if requested_receipt_date:
             payload["requestedReceiptDate"] = requested_receipt_date
+
+        purchase_order_number = self._get_purchase_order_number()
+        if purchase_order_number and not self.existing_record:
+            payload["number"] = purchase_order_number
 
         purchase_order_lines = self._map_purchase_order_lines()
         if purchase_order_lines:

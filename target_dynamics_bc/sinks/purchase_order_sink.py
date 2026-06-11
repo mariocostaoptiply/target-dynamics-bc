@@ -14,6 +14,8 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
     auto_validate_unified_schema = False
     schema = th.PropertiesList(
         th.Property("id", th.StringType),
+        th.Property("number", th.StringType),
+        th.Property("dynamicsId", th.StringType),
         th.Property("externalid", th.StringType),
         th.Property("externalId", th.StringType),
         th.Property("supplier_remoteId", th.StringType),
@@ -27,8 +29,14 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
     ).to_dict()
 
     def preprocess_batch(self, records: list[dict]):
+        for record in records:
+            if not record.get("number") and not record.get("transactionNumber"):
+                optiply_id = record.get("externalId") or record.get("externalid") or record.get("id")
+                if optiply_id:
+                    record["number"] = f"OP-{optiply_id}"
+
         purchase_order_filter_mappings = [
-            {"field_from": "id", "field_to": "id", "should_quote": False},
+            {"field_from": "dynamicsId", "field_to": "id", "should_quote": False},
             {"field_from": "number", "field_to": "number", "should_quote": True},
             {
                 "field_from": "transactionNumber",
@@ -127,7 +135,7 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
             "Items": existing_company_items,
         }
 
-    def process_batch_record(self, record: dict) -> dict:
+    def process_batch_record(self, record: dict, index: int = 0) -> dict:
         if record.get("externalid") and not record.get("externalId"):
             record["externalId"] = record["externalid"]
         mapped_record = PurchaseOrderSchemaMapper(
