@@ -51,18 +51,43 @@ class TargetDynamicsV2(TargetHotglue):
             validate_config=validate_config,
         )
 
+        self.export_company_id = self.get_export_company_id()
         self.dynamics_client = DynamicsClient(self)
         self.reference_data: ReferenceData = self.get_reference_data()
+        self.validate_export_company_id()
         self.dimensions_mapping = self.load_fields_and_dimensions_mapping_config()
 
+    def get_export_company_id(self) -> str:
+        export_company_id = self.config.get("export_company_id")
+        if not export_company_id:
+            raise InvalidConfigurationError(
+                "export_company_id is required in the target config. "
+                "Set it to the Business Central company id that should receive exported Buy Orders."
+            )
+        return str(export_company_id)
+
+    def validate_export_company_id(self):
+        found_company = next(
+            (
+                company
+                for company in self.reference_data["companies"]
+                if company["id"] == self.export_company_id
+            ),
+            None,
+        )
+        if not found_company:
+            raise InvalidConfigurationError(
+                f"export_company_id={self.export_company_id} was not found in Business Central companies"
+            )
+
     def get_reference_data(self) -> ReferenceData:
-        self.logger.info(f"Getting reference data...")
+        self.logger.info("Getting reference data...")
 
         reference_data: ReferenceData = ReferenceData()
         _, _, companies = self.dynamics_client.get_companies()
         reference_data["companies"] = companies
 
-        self.logger.info(f"Done getting reference data...")
+        self.logger.info("Done getting reference data...")
         return reference_data
 
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
@@ -124,6 +149,7 @@ class TargetDynamicsV2(TargetHotglue):
         th.Property("client_secret", th.StringType, required=True),
         th.Property("redirect_uri", th.StringType, required=True),
         th.Property("refresh_token", th.StringType, required=True),
+        th.Property("export_company_id", th.StringType, required=True),
     ).to_dict()
 
 

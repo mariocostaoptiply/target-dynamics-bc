@@ -46,14 +46,20 @@ class PurchaseOrderSchemaMapper(BaseMapper):
         return None
 
     def _map_company(self) -> dict:
-        company = super()._map_company()
         companies = self.reference_data.get("companies", [])
-        if company is None and len(companies) == 1:
-            return cast(dict, companies[0])
-        return company
+        export_company_id = getattr(getattr(self.sink, "_target", None), "export_company_id", None)
+        company = next(
+            (
+                company
+                for company in companies
+                if export_company_id and company.get("id") == export_company_id
+            ),
+            None,
+        )
+        return cast(dict, company)
 
     def _find_existing_record(self, reference_list):
-        if self.company is None:
+        if not self.company:
             return None
 
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
