@@ -31,7 +31,11 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
     def preprocess_batch(self, records: list[dict]):
         for record in records:
             if not record.get("number") and not record.get("transactionNumber"):
-                optiply_id = record.get("externalId") or record.get("externalid") or record.get("id")
+                optiply_id = (
+                    record.get("externalId")
+                    or record.get("externalid")
+                    or record.get("id")
+                )
                 if optiply_id:
                     record["number"] = f"OP-{optiply_id}"
 
