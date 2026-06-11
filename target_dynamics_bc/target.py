@@ -52,6 +52,7 @@ class TargetDynamicsV2(TargetHotglue):
         )
 
         self.export_company_id = self.get_export_company_id()
+        self.export_reference_number = self.get_export_reference_number()
         self.dynamics_client = DynamicsClient(self)
         self.reference_data: ReferenceData = self.get_reference_data()
         self.validate_export_company_id()
@@ -64,6 +65,12 @@ class TargetDynamicsV2(TargetHotglue):
                 "missing export_company_id: set this to the Business Central company id that should receive exported Buy Orders"
             )
         return str(export_company_id)
+
+    def get_export_reference_number(self) -> bool:
+        value = self.config.get("export_reference_number", False)
+        if isinstance(value, str):
+            return value.lower() == "true"
+        return bool(value)
 
     def validate_export_company_id(self):
         found_company = next(
@@ -149,6 +156,7 @@ class TargetDynamicsV2(TargetHotglue):
         th.Property("redirect_uri", th.StringType, required=True),
         th.Property("refresh_token", th.StringType, required=True),
         th.Property("export_company_id", th.StringType),
+        th.Property("export_reference_number", th.BooleanType),
     ).to_dict()
 
 

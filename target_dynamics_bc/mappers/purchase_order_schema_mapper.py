@@ -34,7 +34,15 @@ class PurchaseOrderSchemaMapper(BaseMapper):
         )
         return str(optiply_id) if optiply_id else None
 
+    def _should_export_reference_number(self) -> bool:
+        return bool(
+            getattr(getattr(self.sink, "_target", None), "export_reference_number", False)
+        )
+
     def _get_purchase_order_number(self) -> str | None:
+        if not self._should_export_reference_number():
+            return None
+
         number = self.record.get("number") or self.record.get("transactionNumber")
         if number:
             return str(number)
@@ -80,6 +88,11 @@ class PurchaseOrderSchemaMapper(BaseMapper):
                 return found_record
 
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
+            if (
+                existing_record_pk_mapping["dynamics_field"] == "number"
+                and not self._should_export_reference_number()
+            ):
+                continue
             record_id = self.record.get(existing_record_pk_mapping["record_field"])
             if not record_id:
                 continue
