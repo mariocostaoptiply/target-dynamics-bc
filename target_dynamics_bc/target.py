@@ -61,8 +61,7 @@ class TargetDynamicsV2(TargetHotglue):
         export_company_id = self.config.get("export_company_id")
         if not export_company_id:
             raise InvalidConfigurationError(
-                "export_company_id is required in the target config. "
-                "Set it to the Business Central company id that should receive exported Buy Orders."
+                "missing export_company_id: set this to the Business Central company id that should receive exported Buy Orders"
             )
         return str(export_company_id)
 
@@ -149,7 +148,7 @@ class TargetDynamicsV2(TargetHotglue):
         th.Property("client_secret", th.StringType, required=True),
         th.Property("redirect_uri", th.StringType, required=True),
         th.Property("refresh_token", th.StringType, required=True),
-        th.Property("export_company_id", th.StringType, required=True),
+        th.Property("export_company_id", th.StringType),
     ).to_dict()
 
 

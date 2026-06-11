@@ -47,7 +47,9 @@ class PurchaseOrderSchemaMapper(BaseMapper):
 
     def _map_company(self) -> dict:
         companies = self.reference_data.get("companies", [])
-        export_company_id = getattr(getattr(self.sink, "_target", None), "export_company_id", None)
+        export_company_id = getattr(
+            getattr(self.sink, "_target", None), "export_company_id", None
+        )
         company = next(
             (
                 company
