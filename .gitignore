@@ -137,3 +137,7 @@ dmypy.json
 
 .vscode/
 .history
+
+tenant_info/
+config.json
+export_etl.ipynb
