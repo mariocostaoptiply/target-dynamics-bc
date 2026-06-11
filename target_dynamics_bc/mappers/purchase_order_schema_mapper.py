@@ -36,7 +36,9 @@ class PurchaseOrderSchemaMapper(BaseMapper):
 
     def _should_export_reference_number(self) -> bool:
         return bool(
-            getattr(getattr(self.sink, "_target", None), "export_reference_number", False)
+            getattr(
+                getattr(self.sink, "_target", None), "export_reference_number", False
+            )
         )
 
     def _get_purchase_order_number(self) -> str | None:

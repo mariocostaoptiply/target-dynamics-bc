@@ -1,3 +1,5 @@
+import json
+
 from singer_sdk import typing as th
 
 from target_dynamics_bc.client import DynamicsClient
@@ -189,6 +191,13 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
             request_params = DynamicsClient.get_entity_upsert_request_params(
                 self.record_type, company_id
             )
+
+        buy_order_id = self._get_buy_order_error_id(record)
+        self.logger.info(
+            "BuyOrder %s header request payload: %s",
+            buy_order_id,
+            json.dumps(payload, default=str),
+        )
         purchase_order_upsert_response = self.dynamics_client.make_batch_request(
             [{**request_params, "body": payload}]
         )[0]
@@ -260,6 +269,13 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
                 request_id=request_id,
             )
             line_upsert_requests.append({**request_params, "body": purchase_order_line})
+
+        if line_upsert_requests:
+            self.logger.info(
+                "BuyOrder %s lines request payload: %s",
+                buy_order_id,
+                json.dumps([request["body"] for request in line_upsert_requests], default=str),
+            )
 
         line_upsert_responses = (
             self.dynamics_client.make_batch_request(line_upsert_requests)
