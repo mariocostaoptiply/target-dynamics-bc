@@ -225,7 +225,16 @@ class PurchaseOrderSchemaMapper(BaseMapper):
                     f"Line {index + 1}: expected an object, got {type(line_item).__name__}"
                 )
 
-            item_id = line_item.get("itemId") or line_item.get("product_remoteId")
+            item_id = (
+                line_item.get("itemId")
+                or line_item.get("itemid")
+                or line_item.get("product_remoteId")
+            )
+            variant_id = (
+                line_item.get("itemVariantId")
+                or line_item.get("variantId")
+                or line_item.get("variantid")
+            )
             item_number = (
                 line_item.get("itemNumber")
                 or line_item.get("lineObjectNumber")
@@ -277,6 +286,12 @@ class PurchaseOrderSchemaMapper(BaseMapper):
 
             if line_payload["quantity"] in [None, ""]:
                 raise InvalidInputError(f"Line {index + 1}: quantity is required")
+
+            if (
+                variant_id
+                and str(variant_id) != "00000000-0000-0000-0000-000000000000"
+            ):
+                line_payload["itemVariantId"] = variant_id
 
             direct_unit_cost = (
                 line_item.get("directUnitCost")

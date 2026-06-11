@@ -274,7 +274,9 @@ class PurchaseOrderSink(DynamicsBaseBatchSinkSingleUpsert):
             self.logger.info(
                 "BuyOrder %s lines request payload: %s",
                 buy_order_id,
-                json.dumps([request["body"] for request in line_upsert_requests], default=str),
+                json.dumps(
+                    [request["body"] for request in line_upsert_requests], default=str
+                ),
             )
 
         line_upsert_responses = (
