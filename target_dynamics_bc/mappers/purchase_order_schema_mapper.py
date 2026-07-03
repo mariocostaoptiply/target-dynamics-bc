@@ -287,6 +287,18 @@ class PurchaseOrderSchemaMapper(BaseMapper):
             if line_payload["quantity"] in [None, ""]:
                 raise InvalidInputError(f"Line {index + 1}: quantity is required")
 
+            unit_of_measure_code = line_item.get("unitOfMeasureCode") or line_item.get(
+                "unit_of_measure_code"
+            )
+            if unit_of_measure_code not in [None, ""]:
+                line_payload["unitOfMeasureCode"] = unit_of_measure_code
+
+            unit_of_measure_id = line_item.get("unitOfMeasureId") or line_item.get(
+                "unit_of_measure_id"
+            )
+            if unit_of_measure_id not in [None, ""]:
+                line_payload["unitOfMeasureId"] = unit_of_measure_id
+
             if (
                 variant_id
                 and str(variant_id) != "00000000-0000-0000-0000-000000000000"
