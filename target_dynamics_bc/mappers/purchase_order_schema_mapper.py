@@ -267,9 +267,22 @@ class PurchaseOrderSchemaMapper(BaseMapper):
                     None,
                 )
 
+            purchase_quantity = line_item.get("purchaseQuantity")
+            purchase_unit_of_measure_code = line_item.get(
+                "purchaseUnitOfMeasureCode"
+            )
+            use_purchase_values = (
+                purchase_quantity not in [None, ""]
+                and purchase_unit_of_measure_code not in [None, ""]
+            )
+
             line_payload = {
                 "lineType": line_item.get("lineType", "Item"),
-                "quantity": line_item.get("quantity"),
+                "quantity": (
+                    purchase_quantity
+                    if use_purchase_values
+                    else line_item.get("quantity")
+                ),
             }
 
             if found_item:
@@ -287,8 +300,11 @@ class PurchaseOrderSchemaMapper(BaseMapper):
             if line_payload["quantity"] in [None, ""]:
                 raise InvalidInputError(f"Line {index + 1}: quantity is required")
 
-            unit_of_measure_code = line_item.get("unitOfMeasureCode") or line_item.get(
-                "unit_of_measure_code"
+            unit_of_measure_code = (
+                purchase_unit_of_measure_code
+                if use_purchase_values
+                else line_item.get("unitOfMeasureCode")
+                or line_item.get("unit_of_measure_code")
             )
             if unit_of_measure_code not in [None, ""]:
                 line_payload["unitOfMeasureCode"] = unit_of_measure_code
@@ -305,11 +321,14 @@ class PurchaseOrderSchemaMapper(BaseMapper):
             ):
                 line_payload["itemVariantId"] = variant_id
 
-            direct_unit_cost = (
-                line_item.get("directUnitCost")
-                or line_item.get("unit_price")
-                or line_item.get("unitCost")
-            )
+            if use_purchase_values:
+                direct_unit_cost = line_item.get("purchaseDirectUnitCost")
+            else:
+                direct_unit_cost = (
+                    line_item.get("directUnitCost")
+                    or line_item.get("unit_price")
+                    or line_item.get("unitCost")
+                )
             if direct_unit_cost not in [None, ""]:
                 line_payload["directUnitCost"] = direct_unit_cost
 
